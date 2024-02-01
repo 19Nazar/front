@@ -45,6 +45,7 @@ const CustomModal: React.FC<CustomModalProps> = ({ isOpen, onClose, onGroupCreat
           <h3>Group name (this field is mandatory)</h3>
           <form>
             <input
+              id='nameCreatGroupInpt'
               className="inputt"
               placeholder="Name"
               value={groupName}

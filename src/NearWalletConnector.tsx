@@ -4,14 +4,13 @@ import { setupModal, WalletSelectorModal} from "@near-wallet-selector/modal-ui";
 import { setupNearWallet } from "@near-wallet-selector/near-wallet";
 import "@near-wallet-selector/modal-ui/styles.css"
 import { setupMyNearWallet } from "@near-wallet-selector/my-near-wallet";
-// import { setupWalletConnect } from "@near-wallet-selector/wallet-connect";
-// import { setupMintbaseWallet } from "@near-wallet-selector/mintbase-wallet"; 
 import { setupMeteorWallet } from "@near-wallet-selector/meteor-wallet";
 import { setupMathWallet } from "@near-wallet-selector/math-wallet";
 import { setupNarwallets } from "@near-wallet-selector/narwallets";
 import CustomModal from './modal';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
+import {Contract, WalletConnection } from 'near-api-js';
 
 
 export const NearWalletConnector = () => {
@@ -21,14 +20,10 @@ export const NearWalletConnector = () => {
   const [accounts, setAccounts] = useState<Array<AccountState>>([]);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [nick, setNick] = useState("");  
+  const [publicKey, setPublicKey] = useState("");  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGroupCreated, setIsGroupCreated] = useState(false);
-  // const mintbaseWallet =  setupMintbaseWallet({
-  //   walletUrl: 'https://testnet.wallet.mintbase.xyz',
-  //   callbackUrl: 'http://localhost:5173/',
-  //   deprecated: false,
-  //   contractId: "test.testnet"
-  // });
+
 
   useEffect(() => {
     const initializeWallet = async () => {
@@ -39,21 +34,10 @@ export const NearWalletConnector = () => {
                   setupMeteorWallet(),
                   setupMathWallet(),
                   setupNarwallets(),
-                  // setupWalletConnect({
-                  //   projectId: "c4f79cc...",
-                  //   metadata: {
-                  //     name: "NEAR Wallet Selector",
-                  //     description: "Example dApp used by NEAR Wallet Selector",
-                  //     url: "https://github.com/near/wallet-selector",
-                  //     icons: ["https://avatars.githubusercontent.com/u/37784886"],
-                  //   },
-                  //   chainId: "near:testnet",
-                  // }),
-                  // mintbaseWallet,
                   ],
       });
       const modal = setupModal(selector, {
-        contractId: "dev-1706442202297-21944990165378",
+        contractId: "dev-1706786709334-11063911604801",
       });
       setSelector(selector);
       setModal(modal);
@@ -61,6 +45,8 @@ export const NearWalletConnector = () => {
     };
     initializeWallet();
   }, []);
+
+
 
 
   const signOut = async () => {
@@ -87,6 +73,8 @@ export const NearWalletConnector = () => {
     if (wallet) {
       const account = await wallet.getAccounts();
       const accountId = account[0].accountId;
+      const publicKey = account[0].publicKey ?? "";
+      setPublicKey(publicKey);
       setNick(accountId);
     }
   };
@@ -99,11 +87,176 @@ export const NearWalletConnector = () => {
     setIsModalOpen(false);
   };
 
-  const handleGroupCreate = () => {
-    // logic for create group
+  const handleGroupCreate = async () => {
+    const nameGroupInput = document.getElementById("nameCreatGroupInpt") as HTMLInputElement;
+    if (nameGroupInput) {
+        const nameGroup = nameGroupInput.value;
+        await console.log(nameGroup);
+        await console.log(nick)
+        await console.log(publicKey)
+        if (selector) {
+          try {
+          const wallet = await selector.wallet("my-near-wallet");
+          await wallet.signAndSendTransaction({
+            actions: [{
+              type: "FunctionCall",
+              params: {
+                methodName: "create_factory_subaccount_and_deploy",
+                args: { name: nameGroup, owner: nick, public_key: publicKey },
+                gas: "30000000000000",
+                deposit: "100000000",
+              }
+            }]
+            
+          });
+            try {
+              await wallet.signAndSendTransaction({
+                actions: [{
+                  type: "FunctionCall",
+                  params: {
+                    methodName: "init",
+                    args: { owner: nick },
+                    gas: "300000000000",
+                    deposit: "100000000",
+                  }
+                }]
+              });
+              console.log('Owner innit');
+            } catch (error) {
+              console.error('Error add owner:', error);
+            }
+          console.log('Group create successfully');
+          // Обновите UI после успешного добавления
+          } catch (error) {
+              console.error('Error create group:', error);
+              // Обработайте ошибку, если необходимо
+          }
+      }
+  // Обновите UI после успешного добавления
+    }
     setIsGroupCreated(true);
+};
+
+  const handleAddUserToGroup = async () => {
+      const userNameInput = document.getElementById("userNameInput") as HTMLInputElement;
+      if (userNameInput) {
+          const userNameValue = userNameInput.value;
+          if (selector) {
+            try {
+            const wallet = await selector.wallet("my-near-wallet");
+            await wallet.signAndSendTransaction({
+              actions: [{
+                type: "FunctionCall",
+                params: {
+                  methodName: "add_to_group",
+                  args: { account_id: userNameValue },
+                  gas: "300000000000",
+                  deposit: "100000000",
+                }
+              }]
+            });
+            console.log('User added to group successfully');
+            // Обновите UI после успешного добавления
+            } catch (error) {
+                console.error('Error adding user to group:', error);
+                // Обработайте ошибку, если необходимо
+            }
+        }
+    // Обновите UI после успешного добавления
+    }
   };
  
+
+  const handleAddPermissionToUser  = async () => {
+    const userNameInput = document.getElementById("addPermissionToUserNameInput") as HTMLInputElement;
+    const userPermission = document.getElementById("addPermissionToUserPermissionInput") as HTMLInputElement;
+    if (userNameInput && userPermission) {
+        const accountId  = userNameInput.value;
+        const permission = parseInt(userPermission.value, 10);
+        if (selector) {
+          try {
+          const wallet = await selector.wallet("my-near-wallet");
+          await wallet.signAndSendTransaction({
+            actions: [{
+              type: "FunctionCall",
+              params: {
+                methodName: "add_permission_to_user",
+                args: { account_id: accountId, permission: permission  },
+                gas: "300000000000",
+                deposit: "100000000",
+              }
+            }]
+          });
+          console.log('Permission added to user successfully');
+          // Обновите UI после успешного добавления
+          } catch (error) {
+              console.error('Error adding permission to user:', error);
+              // Обработайте ошибку, если необходимо
+          }
+      }
+  // Обновите UI после успешного добавления
+  }
+  };
+
+
+  const handleDeleteFromGroup  = async () => {
+    const userNameInput = document.getElementById("deleteUserInput") as HTMLInputElement;
+    if (userNameInput) {
+        const userNameValue = userNameInput.value;
+        if (selector) {
+          try {
+          const wallet = await selector.wallet("my-near-wallet");
+          await wallet.signAndSendTransaction({
+            actions: [{
+              type: "FunctionCall",
+              params: {
+                methodName: "delete_from_group",
+                args: { account_id: userNameValue },
+                gas: "300000000000",
+                deposit: "100000000",
+              }
+            }]
+          });
+          console.log('User deleted from group successfully');
+          // Обновите UI после успешного добавления
+          } catch (error) {
+              console.error('Error deleting user from group:', error);
+              // Обработайте ошибку, если необходимо
+          }
+      }
+  // Обновите UI после успешного добавления
+  }
+};
+
+
+const handleTransferGroup  = async () => {
+  const userNameInput = document.getElementById("transferGroup") as HTMLInputElement;
+  if (userNameInput) {
+      const newOwner  = userNameInput.value;
+      if (selector) {
+        try {
+        const wallet = await selector.wallet("my-near-wallet");
+        await wallet.signAndSendTransaction({
+          actions: [{
+            type: "FunctionCall",
+            params: {
+              methodName: "transfer_group",
+              args: { new_owner: newOwner  },
+              gas: "300000000000",
+              deposit: "100000000",
+            }
+          }]
+        });
+        console.log('Group ownership transferred successfully');
+        // Обновите UI после успешного добавления
+        } catch (error) {
+            console.error('Error transferring group ownership:', error);
+            // Обработайте ошибку, если необходимо
+        }
+    }
+// Обновите UI после успешного добавления
+}
+};
 
   return (
     <div>
@@ -134,6 +287,7 @@ export const NearWalletConnector = () => {
               <Tab>Add users to group</Tab>
               <Tab>Set permission to the user</Tab>
               <Tab>Delete user from group</Tab>
+              <Tab>Transfer group</Tab>
               <Tab>Create event</Tab>
               <Tab>Read event</Tab>
               <Tab>View groups</Tab>
@@ -148,9 +302,9 @@ export const NearWalletConnector = () => {
                     <h3>Insert user name:</h3>
                   </div>
                   <form>
-                    <input className="inputt" placeholder="Name"/>
+                    <input id="userNameInput" className="inputt" placeholder="Name"/>
                   </form>
-                  <button className="button_in_TabPanel">Add</button>
+                  <button className="button_in_TabPanel" id="addUserButton" onClick={handleAddUserToGroup}>Add</button>
                 </div>
               </TabPanel>
               <TabPanel>
@@ -162,19 +316,25 @@ export const NearWalletConnector = () => {
                     <h3>Insert user name:</h3>
                   </div>
                   <form>
-                    <input className="inputt" placeholder="Name" />
+                    <input id='addPermissionToUserNameInput' className="inputt" placeholder="Name" />
                   </form>
                   <div>
                     <h3>Set permission:</h3>
                   </div>
                   <form>
-                    <input className="inputt" placeholder="Permission" />
+                    <select id="addPermissionToUserPermissionInput" className="inputt">
+                      <option disabled selected>Chose permission</option>
+                      <option value="0">Owner</option>
+                      <option value="1">Admin</option>
+                      <option value="2">Add to group</option>
+                      <option value="3">Delete from group</option>
+                    </select>
                   </form>
-                  <button className="button_in_TabPanel">Add</button>
+                  <button className="button_in_TabPanel" onClick={handleAddPermissionToUser}>Add</button>
                 </div>
               </TabPanel>
               <TabPanel>
-                <div className="start_module">
+              <div className="start_module">
                     <h1>You can delete user from group</h1>
                 </div>
                 <div className="content_TabPanel">
@@ -182,9 +342,23 @@ export const NearWalletConnector = () => {
                     <h3>Insert user name:</h3>
                   </div>
                   <form>
-                    <input className="inputt" placeholder="Name" />
+                    <input id='deleteUserInput' className="inputt" placeholder="Name" />
                   </form>
-                  <button className="button_in_TabPanel">Delete</button>
+                  <button className="button_in_TabPanel" onClick={handleDeleteFromGroup}>Delete</button>
+                </div>
+              </TabPanel>
+              <TabPanel>
+                <div className="start_module">
+                    <h1>You can transfer your group</h1>
+                </div>
+                <div className="content_TabPanel">
+                  <div>
+                    <h3>Insert user name:</h3>
+                  </div>
+                  <form>
+                    <input id='transferGroup' className="inputt" placeholder="Name" />
+                  </form>
+                  <button className="button_in_TabPanel" onClick={handleTransferGroup}>Transfer</button>
                 </div>
               </TabPanel>
               <TabPanel>
