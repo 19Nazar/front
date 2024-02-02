@@ -91,52 +91,50 @@ export const NearWalletConnector = () => {
     const nameGroupInput = document.getElementById("nameCreatGroupInpt") as HTMLInputElement;
     if (nameGroupInput) {
         const nameGroup = nameGroupInput.value;
-        await console.log(nameGroup);
-        await console.log(nick)
-        await console.log(publicKey)
+        // Создание объекта аргументов для передачи в функцию контракта
+        const args = { name: nameGroup, owner: nick, public_key: publicKey };
+        console.log(JSON.stringify(args)); // Вывод для отладки
         if (selector) {
-          try {
-          const wallet = await selector.wallet("my-near-wallet");
-          await wallet.signAndSendTransaction({
-            actions: [{
-              type: "FunctionCall",
-              params: {
-                methodName: "create_factory_subaccount_and_deploy",
-                args: { name: nameGroup, owner: nick, public_key: publicKey },
-                gas: "30000000000000",
-                deposit: "100000000",
-              }
-            }]
-            
-          });
             try {
-              await wallet.signAndSendTransaction({
-                actions: [{
-                  type: "FunctionCall",
-                  params: {
-                    methodName: "init",
-                    args: { owner: nick },
-                    gas: "300000000000",
-                    deposit: "100000000",
-                  }
-                }]
-              });
-              console.log('Owner innit');
+                const wallet = await selector.wallet("my-near-wallet");
+                // Отправка первой транзакции на выполнение функции контракта
+                await wallet.signAndSendTransaction({
+                    actions: [{
+                        type: "FunctionCall",
+                        params: {
+                            methodName: "create_factory_subaccount_and_deploy",
+                            args: args, // Передача аргументов функции контракта
+                            gas: "300000000000000000000",
+                            deposit: "1070030000000000000000000",
+                        },
+                    }]
+                });
+                // try {
+                //     // Отправка второй транзакции для выполнения другой функции контракта
+                //     await wallet.signAndSendTransaction({
+                //       receiverId: "dev-1706442202297-21944990165378", // Адрес вашего контракта
+                //       actions: [{
+                //           type: "FunctionCall",
+                //           params: {
+                //             methodName: "init", // Имя метода вашего контракта
+                //             args: { owner: nick }, // Аргументы функции контракта
+                //             gas: "30000000000000", // Количество газа
+                //             deposit: "10000000000000000000000", // Депозит
+                //           }
+                //         }]
+                //   });
+                //     console.log('Owner init');
+                // } catch (error) {
+                //     console.error('Error adding owner:', error);
+                // }
+                setIsGroupCreated(true);
+                console.log('Group created successfully');
             } catch (error) {
-              console.error('Error add owner:', error);
+                console.error('Error creating group:', error);
             }
-          console.log('Group create successfully');
-          // Обновите UI после успешного добавления
-          } catch (error) {
-              console.error('Error create group:', error);
-              // Обработайте ошибку, если необходимо
-          }
-      }
-  // Обновите UI после успешного добавления
+        }
     }
-    setIsGroupCreated(true);
 };
-
   const handleAddUserToGroup = async () => {
       const userNameInput = document.getElementById("userNameInput") as HTMLInputElement;
       if (userNameInput) {
@@ -145,13 +143,14 @@ export const NearWalletConnector = () => {
             try {
             const wallet = await selector.wallet("my-near-wallet");
             await wallet.signAndSendTransaction({
+              receiverId: "dev-1706442202297-21944990165378",
               actions: [{
                 type: "FunctionCall",
                 params: {
                   methodName: "add_to_group",
                   args: { account_id: userNameValue },
-                  gas: "300000000000",
-                  deposit: "100000000",
+                  gas: "30000000000000",
+                  deposit: "10000000000000000000000",
                 }
               }]
             });
@@ -386,7 +385,6 @@ const handleTransferGroup  = async () => {
                 </div>
               </TabPanel>
             </div>
-
           </Tabs>
         </>
       )}

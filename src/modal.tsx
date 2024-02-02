@@ -42,7 +42,7 @@ const CustomModal: React.FC<CustomModalProps> = ({ isOpen, onClose, onGroupCreat
           <h2>Settings group</h2>
         </div>
         <div>
-          <h3>Group name (this field is mandatory)</h3>
+          <h3>Group name. The name of the group, must be merged (this field is mandatory).</h3>
           <form>
             <input
               id='nameCreatGroupInpt'
