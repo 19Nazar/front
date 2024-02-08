@@ -10,7 +10,7 @@ import { setupNarwallets } from "@near-wallet-selector/narwallets";
 import CustomModal from './modal';
 import { Tab, Tabs, TabList, TabPanel } from 'react-tabs';
 import 'react-tabs/style/react-tabs.css';
-import {Contract, WalletConnection } from 'near-api-js';
+import {Contract, WalletConnection , utils} from 'near-api-js';
 
 
 export const NearWalletConnector = () => {
@@ -23,7 +23,7 @@ export const NearWalletConnector = () => {
   const [publicKey, setPublicKey] = useState("");  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGroupCreated, setIsGroupCreated] = useState(false);
-
+  const [idNewCotract, setidNewCotract] = useState(""); 
 
   useEffect(() => {
     const initializeWallet = async () => {
@@ -37,7 +37,7 @@ export const NearWalletConnector = () => {
                   ],
       });
       const modal = setupModal(selector, {
-        contractId: "dev-1706786709334-11063911604801",
+        contractId: "adventurous-pig.testnet",
       });
       setSelector(selector);
       setModal(modal);
@@ -54,6 +54,8 @@ export const NearWalletConnector = () => {
     const wallet = await selector.wallet("my-near-wallet");
     if (wallet) {
       await wallet.signOut();
+      const MyBoolean = false; // Ваше булевое значение
+      localStorage.setItem('isGroupCreate', JSON.stringify(MyBoolean));
       window.location.reload();
     }
   };
@@ -63,9 +65,24 @@ export const NearWalletConnector = () => {
       setIsSignedIn(selector.isSignedIn());
       getAccounts();
     }
+    const storedValue = localStorage.getItem('isGroupCreate');
+    if (storedValue) {
+        const myBoolean = JSON.parse(storedValue);
+        setIsGroupCreated(myBoolean);
+        
+    } else {
+        console.log('Value not found in localStorage');
+    }
   }, [selector]);
 
-  
+  const contractVeryfai = async() => {
+    if (selector){
+      const state = selector.store.getState();
+      console.log(idNewCotract);
+      console.log(state);
+      console.log(idNewCotract);
+    }
+  };
   
   const getAccounts = async () => {
     if (!selector) return;
@@ -88,53 +105,51 @@ export const NearWalletConnector = () => {
   };
 
   const handleGroupCreate = async () => {
-    const nameGroupInput = document.getElementById("nameCreatGroupInpt") as HTMLInputElement;
-    if (nameGroupInput) {
-        const nameGroup = nameGroupInput.value;
+    const nameCreatGroup = document.getElementById("nameCreatGroupInpt") as HTMLInputElement;
+    if (nameCreatGroup) {
+        const nameGroup = nameCreatGroup.value;
+        const idNewCotract = `${nameGroup}.adventurous-pig.testnet`
+        console.log(idNewCotract);
+        setidNewCotract(idNewCotract)
         // Создание объекта аргументов для передачи в функцию контракта
         const args = { name: nameGroup, owner: nick, public_key: publicKey };
-        console.log(JSON.stringify(args)); // Вывод для отладки
+        console.log(JSON.stringify(args)); // Вывод для отладк
         if (selector) {
             try {
+                const MyBoolean = true; // Ваше булевое значение
+                localStorage.setItem('isGroupCreate', JSON.stringify(MyBoolean));
                 const wallet = await selector.wallet("my-near-wallet");
-                // Отправка первой транзакции на выполнение функции контракта
-                await wallet.signAndSendTransaction({
+                const response = await wallet.signAndSendTransaction({
+                    receiverId: "adventurous-pig.testnet",
                     actions: [{
-                        type: "FunctionCall",
-                        params: {
-                            methodName: "create_factory_subaccount_and_deploy",
-                            args: args, // Передача аргументов функции контракта
-                            gas: "300000000000000000000",
-                            deposit: "1070030000000000000000000",
-                        },
-                    }]
+                      type: "FunctionCall",
+                      params: {
+                          methodName: "create_factory_subaccount_and_deploy",
+                          args: { name: nameGroup, owner: nick, public_key: publicKey }, // Передача аргументов функции контракта
+                          gas: "300000000000000",
+                          deposit: "1170030000000000000000000"
+                      },
+                  }],
                 });
-                // try {
-                //     // Отправка второй транзакции для выполнения другой функции контракта
-                //     await wallet.signAndSendTransaction({
-                //       receiverId: "dev-1706442202297-21944990165378", // Адрес вашего контракта
-                //       actions: [{
-                //           type: "FunctionCall",
-                //           params: {
-                //             methodName: "init", // Имя метода вашего контракта
-                //             args: { owner: nick }, // Аргументы функции контракта
-                //             gas: "30000000000000", // Количество газа
-                //             deposit: "10000000000000000000000", // Депозит
-                //           }
-                //         }]
-                //   });
-                //     console.log('Owner init');
-                // } catch (error) {
-                //     console.error('Error adding owner:', error);
-                // }
-                setIsGroupCreated(true);
-                console.log('Group created successfully');
-            } catch (error) {
+                await function(){
+                  console.log(response);
+                }
+                // if (response.status.SuccessValue) {
+                //   console.log('Group created successfully');
+                //   setIsGroupCreated(true); // Установка флага только при успешном создании
+                // } else {
+                //   console.error('Error creating group:', response.status.Failure);
+                // }            
+              } catch (error) {
                 console.error('Error creating group:', error);
-            }
+                const MyBoolean = false; // Ваше булевое значение
+                localStorage.setItem('isGroupCreate', JSON.stringify(MyBoolean));
+              }
         }
     }
 };
+
+
   const handleAddUserToGroup = async () => {
       const userNameInput = document.getElementById("userNameInput") as HTMLInputElement;
       if (userNameInput) {
@@ -143,7 +158,7 @@ export const NearWalletConnector = () => {
             try {
             const wallet = await selector.wallet("my-near-wallet");
             await wallet.signAndSendTransaction({
-              receiverId: "dev-1706442202297-21944990165378",
+              receiverId: "mygroup5.adventurous-pig.testnet",
               actions: [{
                 type: "FunctionCall",
                 params: {
@@ -176,13 +191,14 @@ export const NearWalletConnector = () => {
           try {
           const wallet = await selector.wallet("my-near-wallet");
           await wallet.signAndSendTransaction({
+            receiverId: "mygroup5.adventurous-pig.testnet",
             actions: [{
               type: "FunctionCall",
               params: {
                 methodName: "add_permission_to_user",
                 args: { account_id: accountId, permission: permission  },
-                gas: "300000000000",
-                deposit: "100000000",
+                gas: "30000000000000",
+                deposit: "10000000000000000000000",
               }
             }]
           });
@@ -206,13 +222,14 @@ export const NearWalletConnector = () => {
           try {
           const wallet = await selector.wallet("my-near-wallet");
           await wallet.signAndSendTransaction({
+            receiverId: "mygroup5.adventurous-pig.testnet",
             actions: [{
               type: "FunctionCall",
               params: {
                 methodName: "delete_from_group",
                 args: { account_id: userNameValue },
-                gas: "300000000000",
-                deposit: "100000000",
+                gas: "30000000000000",
+                deposit: "10000000000000000000000",
               }
             }]
           });
@@ -241,8 +258,8 @@ const handleTransferGroup  = async () => {
             params: {
               methodName: "transfer_group",
               args: { new_owner: newOwner  },
-              gas: "300000000000",
-              deposit: "100000000",
+              gas: "30000000000000",
+              deposit: "10000000000000000000000",
             }
           }]
         });
@@ -256,6 +273,7 @@ const handleTransferGroup  = async () => {
 // Обновите UI после успешного добавления
 }
 };
+
 
   return (
     <div>
@@ -273,7 +291,12 @@ const handleTransferGroup  = async () => {
       )}
       {isSignedIn && (
         <div>
+        <div>
+          <button onClick={contractVeryfai}>Contact Id</button>
+        </div>
+        <div>
           <button onClick={signOut}>Sign Out {nick}</button>  
+        </div>
         </div>
       )}
       </div>
@@ -301,7 +324,7 @@ const handleTransferGroup  = async () => {
                     <h3>Insert user name:</h3>
                   </div>
                   <form>
-                    <input id="userNameInput" className="inputt" placeholder="Name"/>
+                    <input id="userNameInput" className="inputt" placeholder="example.testnet"/>
                   </form>
                   <button className="button_in_TabPanel" id="addUserButton" onClick={handleAddUserToGroup}>Add</button>
                 </div>
@@ -315,7 +338,7 @@ const handleTransferGroup  = async () => {
                     <h3>Insert user name:</h3>
                   </div>
                   <form>
-                    <input id='addPermissionToUserNameInput' className="inputt" placeholder="Name" />
+                    <input id='addPermissionToUserNameInput' className="inputt" placeholder="example.testnet" />
                   </form>
                   <div>
                     <h3>Set permission:</h3>
@@ -341,7 +364,7 @@ const handleTransferGroup  = async () => {
                     <h3>Insert user name:</h3>
                   </div>
                   <form>
-                    <input id='deleteUserInput' className="inputt" placeholder="Name" />
+                    <input id='deleteUserInput' className="inputt" placeholder="example.testnet" />
                   </form>
                   <button className="button_in_TabPanel" onClick={handleDeleteFromGroup}>Delete</button>
                 </div>
@@ -355,7 +378,7 @@ const handleTransferGroup  = async () => {
                     <h3>Insert user name:</h3>
                   </div>
                   <form>
-                    <input id='transferGroup' className="inputt" placeholder="Name" />
+                    <input id='transferGroup' className="inputt" placeholder="example.testnet" />
                   </form>
                   <button className="button_in_TabPanel" onClick={handleTransferGroup}>Transfer</button>
                 </div>
